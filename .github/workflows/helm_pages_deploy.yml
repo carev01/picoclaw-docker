@@ -1,0 +1,92 @@
+# .github/workflows/helm-pages-deploy.yml
+# Deploys Helm charts to GitHub Pages for public access
+# This creates a traditional Helm repository that works with `helm repo add`
+
+name: Deploy Helm Repository to GitHub Pages
+
+on:
+  # Trigger when the update-helm-chart workflow sends a dispatch
+  repository_dispatch:
+    types:
+      - helm-chart-updated
+  
+  # Also allow manual trigger
+  workflow_dispatch:
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  # Build job: Package charts and generate index.yaml
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'v3.14.0'
+
+      - name: Build Helm Repository
+        run: |
+          # Create directory for Helm repo
+          mkdir -p helm-repo
+
+          # Download existing charts from GitHub releases
+          # This ensures all versions are included in the index
+          echo "Downloading existing chart releases..."
+          gh release list --limit 50 | grep "helm-chart-" | while read -r line; do
+            TAG=$(echo "$line" | awk '{print $1}')
+            echo "Downloading assets from release: $TAG"
+            gh release download "$TAG" --pattern "picoclaw-*.tgz" --dir helm-repo/ || true
+          done
+
+          # Package the current chart (will overwrite if same version exists)
+          echo "Packaging current chart..."
+          helm package charts/picoclaw --destination helm-repo/
+
+          # Generate index.yaml with the public GitHub Pages URL
+          helm repo index helm-repo/ \
+            --url https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+
+          # Show what we have
+          echo "=== Helm Repository Contents ==="
+          ls -la helm-repo/
+          echo ""
+          echo "=== index.yaml ==="
+          cat helm-repo/index.yaml
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: helm-repo/
+
+  # Deployment job: Deploy to GitHub Pages
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
