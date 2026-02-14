@@ -20,6 +20,16 @@ jobs:
           repository: sipeed/picoclaw
           ref: ${{ github.event.client_payload.version }}
       
+      - name: Fix Go version mismatch
+        run: |
+          # Check what go.mod requires
+          REQUIRED_GO=$(grep "^go " go.mod | awk '{print $2}')
+          echo "go.mod requires Go $REQUIRED_GO"
+          # Update Dockerfile to match
+          sed -i "s/FROM golang:[0-9.]*-alpine/FROM golang:${REQUIRED_GO}-alpine/g" Dockerfile  
+          echo "Updated Dockerfile:"
+          grep "FROM golang" Dockerfile
+      
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
@@ -32,14 +42,9 @@ jobs:
         with:
           context: .
           push: true
-          build-args: |
-            GOPROXY=https://proxy.golang.org,direct
-            GOPRIVATE=
           tags: |
             ghcr.io/${{ github.repository }}/picoclaw:${{ github.event.client_payload.version }}
             ghcr.io/${{ github.repository }}/picoclaw:latest
-        env:
-          BUILDKIT_PROGRESS: plain
       
       - name: Update version tracking
         run: |
