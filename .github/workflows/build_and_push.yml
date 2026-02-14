@@ -14,6 +14,7 @@ jobs:
       contents: write
       packages: write
     steps:
+      # Step 1: Check out upstream repo to build
       - name: Checkout upstream repository
         uses: actions/checkout@v4
         with:
@@ -45,6 +46,13 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository }}/picoclaw:${{ github.event.client_payload.version }}
             ghcr.io/${{ github.repository }}/picoclaw:latest
+
+      # Step 2: Check out YOUR repo to update version tracking
+      - name: Checkout your repository
+        uses: actions/checkout@v4
+        with:
+          ref: main  # or your default branch
+          token: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Update version tracking
         run: |
