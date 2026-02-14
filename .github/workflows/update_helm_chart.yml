@@ -1,0 +1,142 @@
+name: Update Helm Chart
+on:
+  repository_dispatch:
+    types: [build-new-release]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to update to (e.g., v0.1.2)'
+        required: true
+        default: ''
+
+jobs:
+  update-helm:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT_TOKEN }}
+          fetch-depth: 0
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ -n "${{ github.event.client_payload.version }}" ]; then
+            VERSION="${{ github.event.client_payload.version }}"
+          elif [ -n "${{ inputs.version }}" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            echo "No version specified"
+            exit 1
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Updating to version: $VERSION"
+
+      - name: Set up Git
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+
+      - name: Update Helm chart values
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          
+          # Update image tag in values.yaml
+          sed -i "s|tag:.*|tag: \"$VERSION\"|g" charts/picoclaw/values.yaml
+          
+          echo "Updated values.yaml image tag to: $VERSION"
+          grep "tag:" charts/picoclaw/values.yaml
+
+      - name: Update Chart.yaml versions
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          
+          # Remove 'v' prefix for appVersion if present
+          APP_VERSION="${VERSION#v}"
+          
+          # Update appVersion in Chart.yaml
+          sed -i "s|appVersion:.*|appVersion: \"$APP_VERSION\"|g" charts/picoclaw/Chart.yaml
+          
+          # Bump chart version (patch version)
+          CURRENT_CHART_VERSION=$(grep "^version:" charts/picoclaw/Chart.yaml | awk '{print $2}')
+          MAJOR=$(echo $CURRENT_CHART_VERSION | cut -d. -f1)
+          MINOR=$(echo $CURRENT_CHART_VERSION | cut -d. -f2)
+          PATCH=$(echo $CURRENT_CHART_VERSION | cut -d. -f3)
+          NEW_CHART_VERSION="$MAJOR.$MINOR.$((PATCH + 1))"
+          sed -i "s|^version:.*|version: $NEW_CHART_VERSION|g" charts/picoclaw/Chart.yaml
+          
+          echo "Updated Chart.yaml:"
+          echo "  appVersion: $APP_VERSION"
+          echo "  version: $NEW_CHART_VERSION"
+          cat charts/picoclaw/Chart.yaml
+
+      - name: Validate Helm chart
+        run: |
+          helm lint charts/picoclaw
+
+      - name: Commit and push changes
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          git add charts/picoclaw/Chart.yaml charts/picoclaw/values.yaml
+          git commit -m "chore: update helm chart for picoclaw $VERSION" || echo "No changes to commit"
+          git push
+
+      - name: Create GitHub Release for Helm Chart
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          CHART_VERSION=$(grep "^version:" charts/picoclaw/Chart.yaml | awk '{print $2}')
+          
+          # Check if release already exists
+          if ! gh release view "helm-chart-$CHART_VERSION" &>/dev/null; then
+            gh release create "helm-chart-$CHART_VERSION" \
+              --title "Helm Chart $CHART_VERSION (PicoClaw $VERSION)" \
+              --notes "## What's Changed
+          
+          - Updated PicoClaw to version **$VERSION**
+          - Image tag: \`ghcr.io/${{ github.repository }}/picoclaw:$VERSION\`
+          
+          ## Installation
+          
+          \`\`\`bash
+          helm install picoclaw ./charts/picoclaw \\
+            -n picoclaw --create-namespace \\
+            --set channels.telegram.enabled=true \\
+            --set channels.telegram.token=\"YOUR_BOT_TOKEN\" \\
+            --set providers.openrouter.apiKey=\"YOUR_API_KEY\"
+          \`\`\`
+          
+          ## Upgrade
+          
+          \`\`\`bash
+          helm upgrade picoclaw ./charts/picoclaw -n picoclaw
+          \`\`\`
+          " \
+              --latest
+            echo "Created release: helm-chart-$CHART_VERSION"
+          else
+            echo "Release helm-chart-$CHART_VERSION already exists, skipping"
+          fi
+
+      - name: Package and publish Helm chart to GHCR
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          
+          # Login to GHCR for Helm
+          echo ${{ secrets.GITHUB_TOKEN }} | helm registry login ghcr.io -u ${{ github.actor }} --password-stdin
+          
+          # Package the chart
+          helm package charts/picoclaw \
+            --destination ./helm-packages \
+            --version $(grep "^version:" charts/picoclaw/Chart.yaml | awk '{print $2}')
+          
+          # Push to GHCR
+          CHART_FILE=$(ls ./helm-packages/*.tgz | head -1)
+          helm push $CHART_FILE oci://ghcr.io/${{ github.repository }}
+          
+          echo "Published Helm chart: $CHART_FILE"
