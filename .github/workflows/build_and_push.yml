@@ -32,9 +32,14 @@ jobs:
         with:
           context: .
           push: true
+          build-args: |
+            GOPROXY=https://proxy.golang.org,direct
+            GOPRIVATE=
           tags: |
             ghcr.io/${{ github.repository }}/picoclaw:${{ github.event.client_payload.version }}
             ghcr.io/${{ github.repository }}/picoclaw:latest
+        env:
+          BUILDKIT_PROGRESS: plain
       
       - name: Update version tracking
         run: |
