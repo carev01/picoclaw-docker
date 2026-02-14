@@ -372,7 +372,7 @@ This repository uses several automated workflows:
 
 ### 1. Upstream Release Monitor (`check_upstream.yml`)
 
-- Checks for new PicoClaw releases every 6 hours
+- Checks for new PicoClaw releases every 24 hours
 - Triggers Docker build when new version detected
 
 ### 2. Docker Build & Push (`build_and_push.yml`)
