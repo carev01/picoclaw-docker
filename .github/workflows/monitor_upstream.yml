@@ -1,0 +1,30 @@
+name: Monitor Upstream Releases
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Check every 24 hours
+  workflow_dispatch:  # Manual trigger option
+
+jobs:
+  check-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout your repo
+        uses: actions/checkout@v4
+      
+      - name: Check for new release
+        id: check
+        run: |
+          LATEST=$(curl -s https://api.github.com/repos/sipeed/picoclaw/releases/latest | jq -r .tag_name)
+          CURRENT=$(cat .last-build-version 2>/dev/null || echo "none")
+          if [ "$LATEST" != "$CURRENT" ]; then
+            echo "new_version=$LATEST" >> $GITHUB_OUTPUT
+            echo "build_needed=true" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Trigger build workflow
+        if: steps.check.outputs.build_needed == 'true'
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          event-type: build-new-release
+          client-payload: '{"version": "${{ steps.check.outputs.new_version }}"}'
