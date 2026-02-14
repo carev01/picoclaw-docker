@@ -1,0 +1,147 @@
+# Default values for picoclaw
+replicaCount: 1
+
+image:
+  repository: ghcr.io/carev01/picoclaw-docker/picoclaw
+  pullPolicy: IfNotPresent
+  tag: "v0.1.1"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext:
+  fsGroup: 1000
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  type: ClusterIP
+  port: 18790
+  annotations: {}
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: picoclaw.example.com
+      paths:
+        - path: /webhook/line
+          pathType: Prefix
+  tls: []
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 128Mi
+  requests:
+    cpu: 100m
+    memory: 32Mi
+
+persistence:
+  enabled: true
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 2Gi
+  annotations: {}
+
+# PicoClaw specific configuration
+picoclaw:
+  gateway:
+    host: "0.0.0.0"
+    port: 18790
+  agents:
+    workspace: "/root/.picoclaw/workspace"
+    model: "glm-4.7"
+    maxTokens: 8192
+    temperature: 0.7
+    maxToolIterations: 20
+    restrictToWorkspace: true
+  heartbeat:
+    enabled: true
+    interval: 30
+
+# Tools - MUST define full structure
+tools:
+  web:
+    brave:
+      enabled: false
+      apiKey: ""
+      maxResults: 5
+    duckduckgo:
+      enabled: true
+      maxResults: 5
+
+# Channels - MUST define full structure
+channels:
+  telegram:
+    enabled: false
+    token: ""
+    allowFrom: []
+  discord:
+    enabled: false
+    token: ""
+    allowFrom: []
+  qq:
+    enabled: false
+    appId: ""
+    appSecret: ""
+    allowFrom: []
+  dingtalk:
+    enabled: false
+    clientId: ""
+    clientSecret: ""
+    allowFrom: []
+  line:
+    enabled: false
+    channelSecret: ""
+    channelAccessToken: ""
+    webhookHost: "0.0.0.0"
+    webhookPort: 18791
+    webhookPath: "/webhook/line"
+    allowFrom: []
+
+# Providers - MUST define full structure
+providers:
+  openrouter:
+    apiKey: ""
+    apiBase: ""
+  zhipu:
+    apiKey: ""
+    apiBase: ""
+  anthropic:
+    apiKey: ""
+    apiBase: ""
+  openai:
+    apiKey: ""
+    apiBase: ""
+  gemini:
+    apiKey: ""
+    apiBase: ""
+  groq:
+    apiKey: ""
+    apiBase: ""
+
+existingSecret: ""
+existingConfigMap: ""
+
+# Liveness and readiness probes
+livenessProbe:
+  enabled: false
+
+readinessProbe:
+  enabled: false

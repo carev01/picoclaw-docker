@@ -1,0 +1,62 @@
+{{- if not (default "" .Values.existingConfigMap) }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "picoclaw.fullname" . }}
+  labels:
+    {{- include "picoclaw.labels" . | nindent 4 }}
+data:
+  config.json: |
+    {
+      "agents": {
+        "defaults": {
+          "workspace": "{{ .Values.picoclaw.agents.workspace }}",
+          "restrict_to_workspace": {{ .Values.picoclaw.agents.restrictToWorkspace }},
+          "model": "{{ .Values.picoclaw.agents.model }}",
+          "max_tokens": {{ .Values.picoclaw.agents.maxTokens }},
+          "temperature": {{ .Values.picoclaw.agents.temperature }},
+          "max_tool_iterations": {{ .Values.picoclaw.agents.maxToolIterations }}
+        }
+      },
+      "tools": {
+        "web": {
+          "brave": {
+            "enabled": {{ .Values.tools.web.brave.enabled }},
+            "max_results": {{ .Values.tools.web.brave.maxResults }}
+          },
+          "duckduckgo": {
+            "enabled": {{ .Values.tools.web.duckduckgo.enabled }},
+            "max_results": {{ .Values.tools.web.duckduckgo.maxResults }}
+          }
+        }
+      },
+      "heartbeat": {
+        "enabled": {{ .Values.picoclaw.heartbeat.enabled }},
+        "interval": {{ .Values.picoclaw.heartbeat.interval }}
+      },
+      "gateway": {
+        "host": "{{ .Values.picoclaw.gateway.host }}",
+        "port": {{ .Values.picoclaw.gateway.port }}
+      },
+      "channels": {
+        "telegram": {
+          "enabled": {{ .Values.channels.telegram.enabled }}
+        },
+        "discord": {
+          "enabled": {{ .Values.channels.discord.enabled }}
+        },
+        "qq": {
+          "enabled": {{ .Values.channels.qq.enabled }}
+        },
+        "dingtalk": {
+          "enabled": {{ .Values.channels.dingtalk.enabled }}
+        },
+        "line": {
+          "enabled": {{ .Values.channels.line.enabled }},
+          "webhook_host": "{{ .Values.channels.line.webhookHost }}",
+          "webhook_port": {{ .Values.channels.line.webhookPort }},
+          "webhook_path": "{{ .Values.channels.line.webhookPath }}"
+        }
+      }
+    }
+{{- end }}

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+ name: {{ include "picoclaw.fullname" . }}
+ labels:
+ {{- include "picoclaw.labels" . | nindent 4 }}
+spec:
+ type: {{ .Values.service.type }}
+ ports:
+ - port: {{ .Values.service.port }}
+ targetPort: gateway
+ protocol: TCP
+ name: gateway
+ selector:
+ {{- include "picoclaw.selectorLabels" . | nindent 4 }}

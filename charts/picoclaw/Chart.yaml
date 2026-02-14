@@ -1,0 +1,17 @@
+apiVersion: v2
+name: picoclaw
+description: Ultra-lightweight AI assistant powered by Go - <10MB RAM, runs on $10 hardware
+type: application
+version: 0.1.1
+appVersion: "v0.1.1"
+keywords:
+  - ai
+  - assistant
+  - lightweight
+  - kubernetes
+home: https://github.com/carev01/picoclaw-docker
+sources:
+  - https://github.com/sipeed/picoclaw
+maintainers:
+  - name: carev01
+    url: https://github.com/carev01
