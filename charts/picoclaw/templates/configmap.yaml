@@ -10,52 +10,79 @@ data:
     {
       "agents": {
         "defaults": {
-          "workspace": "{{ .Values.picoclaw.agents.workspace }}",
-          "restrict_to_workspace": {{ .Values.picoclaw.agents.restrictToWorkspace }},
-          "model": "{{ .Values.picoclaw.agents.model }}",
-          "max_tokens": {{ .Values.picoclaw.agents.maxTokens }},
-          "temperature": {{ .Values.picoclaw.agents.temperature }},
-          "max_tool_iterations": {{ .Values.picoclaw.agents.maxToolIterations }}
+          "workspace": {{ .Values.picoclaw.agents.workspace | default "/home/picoclaw/.picoclaw/workspace" | quote }},
+          "restrict_to_workspace": {{ .Values.picoclaw.agents.restrictToWorkspace | default true }},
+          "model": {{ .Values.picoclaw.agents.model | default "glm-4.7" | quote }},
+          "max_tokens": {{ .Values.picoclaw.agents.maxTokens | default 8192 }},
+          "temperature": {{ .Values.picoclaw.agents.temperature | default 0.7 }},
+          "max_tool_iterations": {{ .Values.picoclaw.agents.maxToolIterations | default 20 }}
+        }
+      },
+      "providers": {
+        "openrouter": {
+          "api_key": "${OPENROUTER_API_KEY}",
+          "api_base": {{ (default "" .Values.providers.openrouter.apiBase) | quote }}
+        },
+        "zhipu": {
+          "api_key": "${ZHIPU_API_KEY}",
+          "api_base": {{ (default "" .Values.providers.zhipu.apiBase) | quote }}
+        },
+        "anthropic": {
+          "api_key": "${ANTHROPIC_API_KEY}",
+          "api_base": {{ (default "" .Values.providers.anthropic.apiBase) | quote }}
+        },
+        "openai": {
+          "api_key": "${OPENAI_API_KEY}",
+          "api_base": {{ (default "" .Values.providers.openai.apiBase) | quote }}
+        },
+        "gemini": {
+          "api_key": "${GEMINI_API_KEY}",
+          "api_base": {{ (default "" .Values.providers.gemini.apiBase) | quote }}
+        },
+        "groq": {
+          "api_key": "${GROQ_API_KEY}",
+          "api_base": {{ (default "" .Values.providers.groq.apiBase) | quote }}
         }
       },
       "tools": {
         "web": {
           "brave": {
-            "enabled": {{ .Values.tools.web.brave.enabled }},
-            "max_results": {{ .Values.tools.web.brave.maxResults }}
+            "enabled": {{ .Values.tools.web.brave.enabled | default false }},
+            "api_key": "${BRAVE_API_KEY}",
+            "max_results": {{ .Values.tools.web.brave.maxResults | default 5 }}
           },
           "duckduckgo": {
-            "enabled": {{ .Values.tools.web.duckduckgo.enabled }},
-            "max_results": {{ .Values.tools.web.duckduckgo.maxResults }}
+            "enabled": {{ .Values.tools.web.duckduckgo.enabled | default true }},
+            "max_results": {{ .Values.tools.web.duckduckgo.maxResults | default 5 }}
           }
         }
       },
       "heartbeat": {
-        "enabled": {{ .Values.picoclaw.heartbeat.enabled }},
-        "interval": {{ .Values.picoclaw.heartbeat.interval }}
+        "enabled": {{ .Values.picoclaw.heartbeat.enabled | default true }},
+        "interval": {{ .Values.picoclaw.heartbeat.interval | default 30 }}
       },
       "gateway": {
-        "host": "{{ .Values.picoclaw.gateway.host }}",
-        "port": {{ .Values.picoclaw.gateway.port }}
+        "host": {{ .Values.picoclaw.gateway.host | default "0.0.0.0" | quote }},
+        "port": {{ .Values.picoclaw.gateway.port | default 18790 }}
       },
       "channels": {
         "telegram": {
-          "enabled": {{ .Values.channels.telegram.enabled }}
+          "enabled": {{ .Values.channels.telegram.enabled | default false }}
         },
         "discord": {
-          "enabled": {{ .Values.channels.discord.enabled }}
+          "enabled": {{ .Values.channels.discord.enabled | default false }}
         },
         "qq": {
-          "enabled": {{ .Values.channels.qq.enabled }}
+          "enabled": {{ .Values.channels.qq.enabled | default false }}
         },
         "dingtalk": {
-          "enabled": {{ .Values.channels.dingtalk.enabled }}
+          "enabled": {{ .Values.channels.dingtalk.enabled | default false }}
         },
         "line": {
-          "enabled": {{ .Values.channels.line.enabled }},
-          "webhook_host": "{{ .Values.channels.line.webhookHost }}",
-          "webhook_port": {{ .Values.channels.line.webhookPort }},
-          "webhook_path": "{{ .Values.channels.line.webhookPath }}"
+          "enabled": {{ .Values.channels.line.enabled | default false }},
+          "webhook_host": {{ .Values.channels.line.webhookHost | default "0.0.0.0" | quote }},
+          "webhook_port": {{ .Values.channels.line.webhookPort | default 18791 }},
+          "webhook_path": {{ .Values.channels.line.webhookPath | default "/webhook/line" | quote }}
         }
       }
     }
