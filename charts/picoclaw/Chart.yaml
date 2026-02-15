@@ -2,7 +2,7 @@ apiVersion: v2
 name: picoclaw
 description: Ultra-lightweight AI assistant powered by Go - <10MB RAM, runs on $10 hardware
 type: application
-version: 0.0.5
+version: 0.0.6
 appVersion: "v0.1.1"
 keywords:
   - ai
