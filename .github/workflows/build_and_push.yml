@@ -2,6 +2,12 @@ name: Build and Push Docker Image
 on:
   repository_dispatch:
     types: [build-new-release]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build'
+        required: true
+        type: string
 
 env:
   REGISTRY: ghcr.io
@@ -14,26 +20,54 @@ jobs:
       contents: write
       packages: write
     steps:
-      # Checkout YOUR repo (contains the patch script)
-      - name: Checkout your repository (tools)
+      - name: Checkout your repository
         uses: actions/checkout@v4
         with:
+          token: ${{ secrets.PAT_TOKEN }}  # Needed to push Dockerfile updates
           ref: main
-          path: self
 
-      # Checkout upstream repo to build
       - name: Checkout upstream repository
         uses: actions/checkout@v4
         with:
           repository: sipeed/picoclaw
-          ref: ${{ github.event.client_payload.version }}
+          ref: ${{ github.event.client_payload.version || github.event.inputs.version }}
           path: upstream
 
-      - name: Patch upstream Dockerfile (Go + non-root)
+      - name: Extract Go version from upstream go.mod
+        id: goversion
         run: |
-          python3 self/.github/scripts/patch_picoclaw_dockerfile.py upstream/Dockerfile upstream/go.mod
-          echo "Dockerfile key lines:"
-          grep -nE '^(FROM|USER|WORKDIR|ENTRYPOINT)|/home/picoclaw|PICOCLAW_' upstream/Dockerfile || true
+          GO_VERSION=$(grep '^go ' upstream/go.mod | awk '{print $2}')
+          echo "go_version=$GO_VERSION" >> $GITHUB_OUTPUT
+          echo "Detected Go version: $GO_VERSION"
+
+      - name: Update Dockerfile with new versions
+        env:
+          NEW_VERSION: ${{ github.event.client_payload.version || github.event.inputs.version }}
+          GO_VERSION: ${{ steps.goversion.outputs.go_version }}
+        run: |
+          # Update Go version in FROM line
+          sed -i "s|FROM golang:[^[:space:]]*-alpine|FROM golang:${GO_VERSION}-alpine|g" Dockerfile
+          
+          # Update PICOCLAW_VERSION ARG
+          sed -i "s|ARG PICOCLAW_VERSION=.*|ARG PICOCLAW_VERSION=${NEW_VERSION}|g" Dockerfile
+          
+          echo "Updated Dockerfile:"
+          grep -E 'FROM golang:|ARG PICOCLAW_VERSION=' Dockerfile
+
+      - name: Commit Dockerfile updates
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add Dockerfile
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update Dockerfile for picoclaw ${{ github.event.client_payload.version || github.event.inputs.version }}"
+            git push
+          fi
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -45,22 +79,28 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
-          context: upstream
+          context: .
+          file: ./Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
+          build-args: |
+            PICOCLAW_VERSION=${{ github.event.client_payload.version || github.event.inputs.version }}
           tags: |
-            ghcr.io/${{ github.repository }}/picoclaw:${{ github.event.client_payload.version }}
-            ghcr.io/${{ github.repository }}/picoclaw:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.event.client_payload.version || github.event.inputs.version }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Update version tracking
-        working-directory: self
         run: |
-          echo "${{ github.event.client_payload.version }}" > .last-build-version
-          git config user.name github-actions
-          git config user.email github-actions@github.com
+          echo "${{ github.event.client_payload.version || github.event.inputs.version }}" > .last-build-version
           git add .last-build-version
-          git commit -m "Built version ${{ github.event.client_payload.version }}"
-          git push
+          if git diff --staged --quiet; then
+            echo "Version already tracked"
+          else
+            git commit -m "Built version ${{ github.event.client_payload.version || github.event.inputs.version }}"
+            git push
+          fi
 
       - name: Trigger Helm Chart Update
         if: success()
@@ -69,4 +109,4 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           event-type: docker-image-published
           client-payload: |
-            {"version": "${{ github.event.client_payload.version }}"}
+            {"version": "${{ github.event.client_payload.version || github.event.inputs.version }}"}

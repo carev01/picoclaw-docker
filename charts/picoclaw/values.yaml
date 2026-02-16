@@ -30,7 +30,7 @@ securityContext:
 
 service:
   type: ClusterIP
-  port: 18790
+  port: 8080
   annotations: {}
 
 ingress:
@@ -65,7 +65,7 @@ picoclaw:
     host: "0.0.0.0"
     port: 18790
   agents:
-    workspace: "/home/picoclaw/.picoclaw/workspace"
+    workspace: "/data/.picoclaw/workspace"
     provider: "zhipu"
     model: "glm-4.7"
     maxTokens: 8192
