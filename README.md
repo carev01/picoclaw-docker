@@ -1,38 +1,40 @@
-# PicoClaw Docker
+# PicoClaw Helm Chart
 
-[![Build and Push](https://github.com/carev01/picoclaw-docker/actions/workflows/build_and_push.yml/badge.svg)](https://github.com/carev01/picoclaw-docker/actions/workflows/build_and_push.yml)
-[![Helm Chart](https://github.com/carev01/picoclaw-docker/actions/workflows/update_helm_chart.yml/badge.svg)](https://github.com/carev01/picoclaw-docker/actions/workflows/update_helm_chart.yml)
-[![GitHub release](https://img.shields.io/github/v/release/carev01/picoclaw-docker?include_prereleases)](https://github.com/carev01/picoclaw-docker/releases)
-[![Docker](https://img.shields.io/badge/ghcr.io-carev01%2Fpicoclaw--docker%2Fpicoclaw-blue)](https://github.com/carev01/picoclaw-docker/pkgs/container/picoclaw-docker%2Fpicoclaw)
+[![Build and Push](https://github.com/carev01/picoclaw-helm/actions/workflows/build_and_push.yml/badge.svg)](https://github.com/carev01/picoclaw-helm/actions/workflows/build_and_push.yml)
+[![Helm Chart](https://github.com/carev01/picoclaw-helm/actions/workflows/update_helm_chart.yml/badge.svg)](https://github.com/carev01/picoclaw-helm/actions/workflows/update_helm_chart.yml)
+[![GitHub release](https://img.shields.io/github/v/release/carev01/picoclaw-helm?include_prereleases)](https://github.com/carev01/picoclaw-helm/releases)
+[![Docker](https://img.shields.io/badge/ghcr.io-carev01%2Fpicoclaw--helm%2Fpicoclaw-blue)](https://github.com/carev01/picoclaw-helm/pkgs/container/picoclaw-helm%2Fpicoclaw)
 
-Automated Docker builds and Kubernetes Helm charts for [PicoClaw](https://github.com/sipeed/picoclaw) - an ultra-lightweight AI assistant powered by Go, running on less than 10MB RAM.
+A Helm chart for deploying [PicoClaw](https://github.com/sipeed/picoclaw) on Kubernetes.
+
+PicoClaw is an ultra-lightweight personal AI assistant written in Go, designed to run on low-cost hardware with **<10MB RAM** and **~1s boot time**. This Helm chart deploys PicoClaw with a web-based management interface for easy configuration and monitoring.
 
 ## Table of Contents
 
 - [Overview](#overview)
 - [Docker Images](#docker-images)
-- [Helm Chart Installation](#helm-chart-installation)
-  - [Method 1: GitHub Pages (Recommended)](#method-1-github-pages-recommended)
-  - [Method 2: OCI Registry](#method-2-oci-registry)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
 - [Configuration](#configuration)
-  - [Basic Configuration](#basic-configuration)
-  - [Channel Configuration](#channel-configuration)
-  - [Provider Configuration](#provider-configuration)
-  - [Tools Configuration](#tools-configuration)
-- [Usage Examples](#usage-examples)
-- [Automation](#automation)
+- [Example Values File](#example-values-file)
+- [Usage](#usage)
+- [Architecture](#architecture)
 - [Upgrading](#upgrading)
+- [Uninstallation](#uninstallation)
+- [Automation](#automation)
+- [Related Projects](#related-projects)
 - [Contributing](#contributing)
+- [License](#license)
 
 ## Overview
 
-This repository provides:
+This chart packages PicoClaw for Kubernetes deployment, providing:
 
-1. **Automated Docker builds** - Automatically builds and publishes Docker images when new PicoClaw releases are published upstream
-2. **Helm Charts** - Kubernetes deployment charts for running PicoClaw in gateway mode
-3. **Automated Chart Updates** - Helm charts are automatically updated when new images are built
-
-PicoClaw gateway mode runs as a long-running service that connects to chat platforms like Telegram, Discord, QQ, DingTalk, and LINE, making it perfect for Kubernetes deployments.
+- **Web Management UI** - Browser-based dashboard for configuration and monitoring
+- **Basic Auth Protection** - Secure access with configurable credentials
+- **Persistent Storage** - Preserves configuration and workspace across restarts
+- **Health Probes** - Kubernetes-native liveness and readiness checks
+- **Ingress Support** - Easy external access configuration
 
 ## Docker Images
 
@@ -48,322 +50,243 @@ ghcr.io/carev01/picoclaw-docker/picoclaw:latest
 - `linux/amd64`
 - `linux/arm64`
 
-## Helm Chart Installation
+## Prerequisites
 
-### GitHub Pages
+- Kubernetes 1.19+
+- Helm 3.2.0+
+- PersistentVolume provisioner (if persistence is enabled)
 
-No authentication required - works with standard `helm repo add`:
+## Installation
+
+### From GitHub Pages
 
 ```bash
-# Add the Helm repository
-helm repo add picoclaw https://carev01.github.io/picoclaw-docker
+helm repo add picoclaw https://carev01.github.io/picoclaw-helm
+helm install my-picoclaw picoclaw/picoclaw
+```
 
-# Update repository
-helm repo update
+### From Source
 
-# Search for available versions
-helm search repo picoclaw --versions
+```bash
+git clone https://github.com/carev01/picoclaw-helm.git
+cd picoclaw-helm
+helm install my-picoclaw ./charts/picoclaw
+```
+
+### With Custom Values
+
+```bash
+helm install my-picoclaw picoclaw/picoclaw -f my-values.yaml
 ```
 
 ## Configuration
 
-### Basic Installation
-
-Create a `values.yaml` file with your configuration:
-
-```yaml
-# values.yaml - Minimal configuration for Telegram
-channels:
-  telegram:
-    enabled: true
-    token: "YOUR_BOT_TOKEN"
-
-providers:
-  openrouter:
-    apiKey: "YOUR_OPENROUTER_API_KEY"
-```
-
-Install the chart:
-
-```bash
-helm install picoclaw picoclaw/picoclaw \
-  -n picoclaw --create-namespace \
-  -f values.yaml
-```
-
 ### Basic Configuration
+
+The following table lists the configurable parameters of the PicoClaw chart and their default values.
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `replicaCount` | Number of replicas | `1` |
-| `image.repository` | Image repository | `ghcr.io/carev01/picoclaw-docker/picoclaw` |
+| `image.repository` | Image repository | `ghcr.io/carev01/picoclaw-helm/picoclaw` |
 | `image.tag` | Image tag | `v0.1.1` |
 | `image.pullPolicy` | Image pull policy | `IfNotPresent` |
+| `service.type` | Service type | `ClusterIP` |
+| `service.port` | Service port | `8080` |
+
+### Authentication
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `auth.adminUsername` | Username for Basic Auth | `admin` |
+| `auth.adminPassword` | Password for Basic Auth (auto-generated if empty) | `""` |
+| `existingSecret` | Use an existing secret for credentials | `""` |
+
+> **Note**: If `auth.adminPassword` is not set, a random password will be generated during deployment. Check the deployment logs to retrieve the generated password.
+
+### Persistence
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
 | `persistence.enabled` | Enable persistent storage | `true` |
-| `persistence.size` | Storage size | `2Gi` |
+| `persistence.storageClass` | Storage class name | `""` (default) |
+| `persistence.accessMode` | Access mode | `ReadWriteOnce` |
+| `persistence.size` | Size of persistent volume | `2Gi` |
 
-### Resource Configuration
+### Ingress
 
-PicoClaw is designed to be extremely lightweight:
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `ingress.enabled` | Enable ingress | `false` |
+| `ingress.className` | Ingress class name | `""` |
+| `ingress.annotations` | Ingress annotations | `{}` |
+| `ingress.hosts` | Ingress hosts configuration | See values.yaml |
+| `ingress.tls` | TLS configuration | `[]` |
 
-```yaml
-resources:
-  limits:
-    cpu: 500m
-    memory: 128Mi
-  requests:
-    cpu: 100m
-    memory: 32Mi
-```
+### Resource Limits
 
-### Channel Configuration
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `resources.limits.cpu` | CPU limit | `500m` |
+| `resources.limits.memory` | Memory limit | `256Mi` |
+| `resources.requests.cpu` | CPU request | `100m` |
+| `resources.requests.memory` | Memory request | `64Mi` |
 
-Configure which chat platforms PicoClaw connects to:
+### Health Probes
 
-#### Telegram
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `livenessProbe.enabled` | Enable liveness probe | `true` |
+| `readinessProbe.enabled` | Enable readiness probe | `true` |
 
-```yaml
-channels:
-  telegram:
-    enabled: true
-    token: "YOUR_BOT_TOKEN"
-    allowFrom: []  # Empty = allow all users
-```
-
-#### Discord
-
-```yaml
-channels:
-  discord:
-    enabled: true
-    token: "YOUR_DISCORD_BOT_TOKEN"
-    allowFrom: []  # Empty = allow all users/guilds
-```
-
-#### QQ (OneBot)
+## Example Values File
 
 ```yaml
-channels:
-  qq:
-    enabled: true
-    appId: "YOUR_APP_ID"
-    appSecret: "YOUR_APP_SECRET"
-    allowFrom: []
-```
+# Minimal configuration with custom credentials
+auth:
+  adminUsername: "myadmin"
+  adminPassword: "mysecurepassword"
 
-#### DingTalk
-
-```yaml
-channels:
-  dingtalk:
-    enabled: true
-    clientId: "YOUR_CLIENT_ID"
-    clientSecret: "YOUR_CLIENT_SECRET"
-    allowFrom: []
-```
-
-#### LINE
-
-```yaml
-channels:
-  line:
-    enabled: true
-    channelSecret: "YOUR_CHANNEL_SECRET"
-    channelAccessToken: "YOUR_CHANNEL_ACCESS_TOKEN"
-    webhookHost: "0.0.0.0"
-    webhookPort: 18791
-    webhookPath: "/webhook/line"
-    allowFrom: []
-
-# For LINE, you may also want to enable Ingress:
+# Enable ingress with TLS
 ingress:
   enabled: true
   className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
   hosts:
     - host: picoclaw.example.com
       paths:
-        - path: /webhook/line
+        - path: /
           pathType: Prefix
-```
+  tls:
+    - secretName: picoclaw-tls
+      hosts:
+        - picoclaw.example.com
 
-### Provider Configuration
-
-Configure your AI model providers. At least one provider must be configured:
-
-#### OpenRouter (Recommended)
-
-```yaml
-providers:
-  openrouter:
-    apiKey: "sk-or-v1-xxxxx"
-    apiBase: ""  # Uses default
-```
-
-#### Zhipu AI
-
-```yaml
-providers:
-  zhipu:
-    apiKey: "your-zhipu-api-key"
-    apiBase: ""  # Uses default
-```
-
-#### Anthropic
-
-```yaml
-providers:
-  anthropic:
-    apiKey: "sk-ant-xxxxx"
-    apiBase: ""
-```
-
-#### OpenAI
-
-```yaml
-providers:
-  openai:
-    apiKey: "sk-xxxxx"
-    apiBase: ""  # Or your custom endpoint
-```
-
-#### Google Gemini
-
-```yaml
-providers:
-  gemini:
-    apiKey: "your-gemini-api-key"
-    apiBase: ""
-```
-
-#### Groq
-
-```yaml
-providers:
-  groq:
-    apiKey: "gsk_xxxxx"
-    apiBase: ""
-```
-
-### Tools Configuration
-
-Enable web search capabilities:
-
-#### DuckDuckGo (Default, No API Key Required)
-
-```yaml
-tools:
-  web:
-    duckduckgo:
-      enabled: true
-      maxResults: 5
-```
-
-#### Brave Search (Requires API Key)
-
-```yaml
-tools:
-  web:
-    brave:
-      enabled: true
-      apiKey: "YOUR_BRAVE_API_KEY"
-      maxResults: 5
-    duckduckgo:
-      enabled: false
-```
-
-### Advanced Configuration
-
-```yaml
-picoclaw:
-  gateway:
-    host: "0.0.0.0"
-    port: 18790
-  agents:
-    workspace: "/root/.picoclaw/workspace"
-    provider: "zhipu"        # Default provider
-    model: "glm-4.7"         # Default model
-    maxTokens: 8192          # Maximum response tokens
-    temperature: 0.7         # Model temperature
-    maxToolIterations: 20    # Max tool call iterations
-    restrictToWorkspace: true # Restrict file operations to workspace
-  heartbeat:
-    enabled: true
-    interval: 30
-
-persistence:
-  enabled: true
-  storageClass: "standard"  # Your storage class
-  accessMode: ReadWriteOnce
-  size: 2Gi
-```
-
-## Usage Examples
-
-### Minimal Telegram Bot
-
-```yaml
-# telegram-values.yaml
-channels:
-  telegram:
-    enabled: true
-    token: "YOUR_BOT_TOKEN"
-
-providers:
-  openrouter:
-    apiKey: "YOUR_API_KEY"
-```
-
-```bash
-helm install picoclaw picoclaw/picoclaw \
-  -n picoclaw --create-namespace \
-  -f telegram-values.yaml
-```
-
-### Multi-Channel Deployment
-
-```yaml
-# multi-channel-values.yaml
-channels:
-  telegram:
-    enabled: true
-    token: "TELEGRAM_TOKEN"
-  discord:
-    enabled: true
-    token: "DISCORD_TOKEN"
-
-providers:
-  openrouter:
-    apiKey: "YOUR_API_KEY"
-
-tools:
-  web:
-    duckduckgo:
-      enabled: true
-      maxResults: 5
-
+# Resource configuration
 resources:
   limits:
     cpu: 500m
-    memory: 128Mi
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 64Mi
 ```
 
-### Using Existing Secrets
+## Usage
 
-For production, use existing secrets instead of putting credentials in values:
+### Accessing the Web UI
 
-```yaml
-# Create secret first
-existingSecret: "picoclaw-secrets"
+After deployment, access the PicoClaw web UI:
+
+1. **Port Forward** (for local access):
+   ```bash
+   kubectl port-forward svc/my-picoclaw 8080:8080
+   ```
+   Then open http://localhost:8080 in your browser.
+
+2. **Via Ingress** (if enabled):
+   Navigate to your configured host URL.
+
+### Configuration Management
+
+The new version of PicoClaw features a web-based configuration system:
+
+- **Dashboard**: View gateway status, provider configuration, and channel status
+- **Settings**: Configure providers (OpenAI, Anthropic, Zhipu, etc.) and channels (Telegram, Discord, Slack, etc.)
+- **Logs**: Real-time gateway log viewer
+- **Gateway Control**: Start, stop, and restart the PicoClaw gateway
+
+All configuration is stored in the persistent volume at `/data/.picoclaw/config.json`.
+
+### Configuring LLM Providers
+
+Through the web UI, you can configure multiple LLM providers:
+
+- **Anthropic** - Claude models
+- **OpenAI** - GPT models
+- **OpenRouter** - Multi-model gateway
+- **Zhipu** - GLM models (default)
+- **Gemini** - Google's models
+- **Groq** - Fast inference
+- **DeepSeek** - DeepSeek models
+- **Moonshot** - Moonshot models
+- **VLLM** - Self-hosted models
+- **NVIDIA** - NVIDIA NIM models
+
+### Channel Configuration
+
+Enable various messaging channels for your AI assistant:
+
+| Channel | Description | Required Config |
+|---------|-------------|-----------------|
+| Telegram | Telegram bot integration | Bot Token |
+| Discord | Discord bot integration | Bot Token |
+| Slack | Slack app integration | Bot Token, App Token |
+| LINE | LINE messaging | Channel Secret, Channel Access Token |
+| Feishu | Feishu/Lark integration | App ID, App Secret |
+| DingTalk | DingTalk bot | Client ID, Client Secret |
+| QQ | QQ bot | App ID, App Secret |
+| WhatsApp | WhatsApp via bridge | Bridge URL |
+
+### Web Search Tools
+
+Configure web search capabilities:
+
+- **DuckDuckGo** - Free search (enabled by default)
+- **Brave Search** - API-based search with higher rate limits
+
+## Architecture
+
+The deployment consists of:
+
+1. **Web Server** (Starlette-based) - Management UI and API endpoints
+2. **PicoClaw Gateway** - The core AI assistant process
+3. **Persistent Volume** - Stores configuration and workspace
+
+```
+┌─────────────────────────────────────────┐
+│              Pod                        │
+│  ┌─────────────────────────────────┐   │
+│  │      Web Server (Port 8080)     │   │
+│  │   - Dashboard UI                │   │
+│  │   - Configuration API           │   │
+│  │   - Basic Auth                  │   │
+│  └──────────────┬──────────────────┘   │
+│                 │ Manages               │
+│                 ▼                       │
+│  ┌─────────────────────────────────┐   │
+│  │    PicoClaw Gateway Process     │   │
+│  │    (Controlled by Web Server)   │   │
+│  └─────────────────────────────────┘   │
+│                 │                       │
+│                 ▼                       │
+│  ┌─────────────────────────────────┐   │
+│  │    Persistent Volume            │   │
+│  │    /data/.picoclaw/             │   │
+│  │    - config.json                │   │
+│  │    - workspace/                 │   │
+│  │    - sessions/                  │   │
+│  └─────────────────────────────────┘   │
+└─────────────────────────────────────────┘
 ```
 
-Create the secret manually:
+## Upgrading
 
 ```bash
-kubectl create secret generic picoclaw-secrets \
-  -n picoclaw \
-  --from-literal=TELEGRAM_BOT_TOKEN="your-token" \
-  --from-literal=OPENROUTER_API_KEY="your-key"
+helm upgrade my-picoclaw picoclaw/picoclaw
 ```
+
+## Uninstallation
+
+```bash
+helm uninstall my-picoclaw
+```
+
+> **Note**: This will remove the deployment but preserve the PVC. To delete the PVC as well:
+> ```bash
+> kubectl delete pvc -l app.kubernetes.io/instance=my-picoclaw
+> ```
 
 ## Automation
 
@@ -405,57 +328,10 @@ Upstream Release → check_upstream.yml
               helm-pages-deploy.yml (Pages)
 ```
 
-## Upgrading
+## Related Projects
 
-### Upgrade to Latest Version
-
-```bash
-# Update repository
-helm repo update
-
-# Upgrade release
-helm upgrade picoclaw picoclaw/picoclaw -n picoclaw
-```
-
-### Upgrade with New Values
-
-```bash
-helm upgrade picoclaw picoclaw/picoclaw \
-  -n picoclaw \
-  -f new-values.yaml
-```
-
-### Check Current Values
-
-```bash
-helm get values picoclaw -n picoclaw
-```
-
-## Troubleshooting
-
-### Check Pod Logs
-
-```bash
-kubectl logs -n picoclaw -l app.kubernetes.io/name=picoclaw -f
-```
-
-### Check Pod Status
-
-```bash
-kubectl get pods -n picoclaw
-kubectl describe pod -n picoclaw -l app.kubernetes.io/name=picoclaw
-```
-
-### Common Issues
-
-1. **Pod not starting**: Check if secrets are correctly configured
-2. **Bot not responding**: Verify channel tokens and API keys
-3. **Persistence issues**: Check storage class and PVC status
-
-```bash
-# Check PVC status
-kubectl get pvc -n picoclaw
-```
+- [PicoClaw](https://github.com/sipeed/picoclaw) - The upstream PicoClaw project
+- [PicoClaw Railway Template](https://github.com/arjunkomath/picoclaw-railway-template) - 1-click deploy template for Railway
 
 ## Contributing
 
@@ -488,10 +364,11 @@ Contributions are welcome! Please feel free to submit issues and pull requests.
 ## License
 
 This project is provided as-is for building and deploying PicoClaw. PicoClaw itself is licensed under its own terms - see [upstream repository](https://github.com/sipeed/picoclaw) for details.
+This project is licensed under UNLICENSE - see the [LICENSE](LICENSE) file for details.
 
 ## Links
 
 - [PicoClaw (Upstream)](https://github.com/sipeed/picoclaw)
-- [Docker Images](https://github.com/carev01/picoclaw-docker/pkgs/container/picoclaw-docker%2Fpicoclaw)
-- [Helm Chart Releases](https://github.com/carev01/picoclaw-docker/releases)
-- [Issues](https://github.com/carev01/picoclaw-docker/issues)
+- [Docker Images](https://github.com/carev01/picoclaw-helm/pkgs/container/picoclaw-docker%2Fpicoclaw)
+- [Helm Chart Releases](https://github.com/carev01/picoclaw-helm/releases)
+- [Issues](https://github.com/carev01/picoclaw-helm/issues)
