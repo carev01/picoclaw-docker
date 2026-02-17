@@ -41,8 +41,8 @@ This chart packages PicoClaw for Kubernetes deployment, providing:
 Images are available at GitHub Container Registry:
 
 ```bash
-ghcr.io/carev01/picoclaw-docker/picoclaw:v0.1.1
-ghcr.io/carev01/picoclaw-docker/picoclaw:latest
+ghcr.io/carev01/picoclaw-helm/picoclaw:v0.1.1
+ghcr.io/carev01/picoclaw-helm/picoclaw:latest
 ```
 
 ### Supported Platforms
