@@ -20,7 +20,7 @@ FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim
 
 # Install common system tools
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl wget ca-certificates git zip unzip tar jq imagemagick pandoc poppler-utils && \
+    apt-get install -y --no-install-recommends curl wget ca-certificates git zip unzip tar jq imagemagick pandoc poppler-utils nano && \
     apt-get clean && \ 
     rm -rf /var/lib/apt/lists/*
 

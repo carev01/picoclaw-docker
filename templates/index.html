@@ -82,6 +82,17 @@
           <div class="bg-white border border-gray-200 dark:bg-gray-900 dark:border-gray-800 rounded-xl p-4">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
+                <label class="block text-xs text-gray-500 mb-1">Provider</label>
+                <select class="w-full bg-gray-100 border border-gray-300 dark:bg-gray-800 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        x-model="config.agents.defaults.provider">
+                  <option value="">Auto (by model prefix)</option>
+                  <template x-for="p in providerList" :key="p.key">
+                    <option :value="p.key" x-text="p.label"></option>
+                  </template>
+                </select>
+                <p class="text-xs text-gray-400 mt-1">Select a default provider or leave empty for auto-detection</p>
+              </div>
+              <div>
                 <label class="block text-xs text-gray-500 mb-1">Model</label>
                 <input type="text" class="w-full bg-gray-100 border border-gray-300 dark:bg-gray-800 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                        x-model="config.agents.defaults.model">
