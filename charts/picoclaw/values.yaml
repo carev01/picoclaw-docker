@@ -78,10 +78,10 @@ persistence:
 # Authentication configuration
 auth:
   # Username for Basic Auth. Defaults to "admin" if not set.
-  username: "admin"
+  adminUsername: "admin"
   # Password for Basic Auth. If not set, a random password will be generated
   # and printed in the deployment logs. Check the pod logs to retrieve it.
-  password: ""
+  adminPassword: ""
 
 # Use an existing secret for authentication credentials
 # If set, auth.username and auth.password will be ignored
