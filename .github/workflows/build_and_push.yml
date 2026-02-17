@@ -33,6 +33,31 @@ jobs:
           ref: ${{ github.event.client_payload.version || github.event.inputs.version }}
           path: upstream
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Validate and update config UI
+        id: config_validation
+        env:
+          ZHIPU_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
+          UPSTREAM_VERSION: ${{ github.event.client_payload.version || github.event.inputs.version }}
+        run: python .github/scripts/validate_config.py
+
+      - name: Commit config UI updates
+        if: steps.config_validation.outputs.files_updated == 'true'
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add server.py templates/index.html
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Auto-update web console for config changes (AI-assisted)"
+            git push
+          fi
+
       - name: Extract Go version from upstream go.mod
         id: goversion
         run: |
