@@ -274,6 +274,7 @@ The deployment consists of:
 ## Upgrading
 
 ```bash
+helm repo update
 helm upgrade my-picoclaw picoclaw/picoclaw
 ```
 
