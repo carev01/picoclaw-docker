@@ -28,6 +28,8 @@ SECRET_FIELDS = {
     "api_key", "token", "app_secret", "encrypt_key",
     "verification_token", "bot_token", "app_token",
     "channel_secret", "channel_access_token", "client_secret",
+    "corp_secret", "access_token", "session_store_path",
+    "webhook_url", "encoding_aes_key", "client_id", "corp_id",
 }
 
 CONFIG_DIR = Path(os.environ.get("PICOCLAW_HOME", Path.home() / ".picoclaw"))
@@ -99,36 +101,60 @@ def default_config():
                 "max_tokens": 8192,
                 "temperature": 0.7,
                 "max_tool_iterations": 20,
+                "model_name": "gpt4"
             }
         },
         "channels": {
-            "telegram": {"enabled": False, "token": "", "proxy": "", "allow_from": []},
-            "discord": {"enabled": False, "token": "", "allow_from": []},
-            "slack": {"enabled": False, "bot_token": "", "app_token": "", "allow_from": []},
-            "whatsapp": {"enabled": False, "bridge_url": "ws://localhost:3001", "allow_from": []},
-            "feishu": {"enabled": False, "app_id": "", "app_secret": "", "encrypt_key": "", "verification_token": "", "allow_from": []},
-            "dingtalk": {"enabled": False, "client_id": "", "client_secret": "", "allow_from": []},
-            "qq": {"enabled": False, "app_id": "", "app_secret": "", "allow_from": []},
-            "line": {"enabled": False, "channel_secret": "", "channel_access_token": "", "webhook_host": "0.0.0.0", "webhook_port": 18791, "webhook_path": "/webhook/line", "allow_from": []},
-            "maixcam": {"enabled": False, "host": "0.0.0.0", "port": 18790, "allow_from": []},
+            "telegram": {"enabled": False, "token": "", "proxy": "", "allow_from": [], "reasoning_channel_id": ""},
+            "discord": {"enabled": False, "token": "", "allow_from": [], "mention_only": False, "reasoning_channel_id": ""},
+            "slack": {"enabled": False, "bot_token": "", "app_token": "", "allow_from": [], "reasoning_channel_id": ""},
+            "whatsapp": {"enabled": False, "bridge_url": "ws://localhost:3001", "use_native": False, "session_store_path": "", "allow_from": [], "reasoning_channel_id": ""},
+            "feishu": {"enabled": False, "app_id": "", "app_secret": "", "encrypt_key": "", "verification_token": "", "allow_from": [], "reasoning_channel_id": ""},
+            "dingtalk": {"enabled": False, "client_id": "", "client_secret": "", "allow_from": [], "reasoning_channel_id": ""},
+            "qq": {"enabled": False, "app_id": "", "app_secret": "", "allow_from": [], "reasoning_channel_id": ""},
+            "line": {"enabled": False, "channel_secret": "", "channel_access_token": "", "webhook_host": "0.0.0.0", "webhook_port": 18791, "webhook_path": "/webhook/line", "allow_from": [], "reasoning_channel_id": ""},
+            "maixcam": {"enabled": False, "host": "0.0.0.0", "port": 18790, "allow_from": [], "reasoning_channel_id": ""},
+            "onebot": {"enabled": False, "ws_url": "ws://127.0.0.1:3001", "access_token": "", "reconnect_interval": 5, "group_trigger_prefix": [], "allow_from": [], "reasoning_channel_id": ""},
+            "wecom": {"enabled": False, "token": "", "encoding_aes_key": "", "webhook_url": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_KEY", "webhook_host": "0.0.0.0", "webhook_port": 18793, "webhook_path": "/webhook/wecom", "allow_from": [], "reply_timeout": 5, "reasoning_channel_id": ""},
+            "wecom_app": {"enabled": False, "corp_id": "", "corp_secret": "", "agent_id": 1000002, "token": "", "encoding_aes_key": "", "webhook_host": "0.0.0.0", "webhook_port": 18792, "webhook_path": "/webhook/wecom-app", "allow_from": [], "reply_timeout": 5, "reasoning_channel_id": ""}
         },
+        "model_list": [],
         "providers": {
-            "anthropic": {"api_key": ""},
-            "openai": {"api_key": "", "api_base": ""},
-            "openrouter": {"api_key": ""},
-            "deepseek": {"api_key": ""},
-            "groq": {"api_key": ""},
-            "gemini": {"api_key": ""},
+            "anthropic": {"api_key": "", "api_base": ""},
+            "openai": {"api_key": "", "api_base": "", "web_search": True},
+            "openrouter": {"api_key": "", "api_base": ""},
+            "groq": {"api_key": "", "api_base": ""},
             "zhipu": {"api_key": "", "api_base": ""},
+            "gemini": {"api_key": "", "api_base": ""},
             "vllm": {"api_key": "", "api_base": ""},
-            "nvidia": {"api_key": "", "api_base": ""},
-            "moonshot": {"api_key": ""},
+            "nvidia": {"api_key": "", "api_base": "", "proxy": ""},
+            "moonshot": {"api_key": "", "api_base": ""},
+            "ollama": {"api_key": "", "api_base": "http://localhost:11434/v1"},
+            "cerebras": {"api_key": "", "api_base": ""},
+            "volcengine": {"api_key": "", "api_base": ""},
+            "mistral": {"api_key": "", "api_base": "https://api.mistral.ai/v1"},
+            "qwen": {"api_key": "", "api_base": ""}
         },
         "gateway": {"host": "0.0.0.0", "port": 18790},
         "tools": {
             "web": {
                 "brave": {"enabled": False, "api_key": "", "max_results": 5},
                 "duckduckgo": {"enabled": True, "max_results": 5},
+                "perplexity": {"enabled": False, "api_key": "", "max_results": 5},
+                "proxy": ""
+            },
+            "cron": {"exec_timeout_minutes": 5},
+            "exec": {"enable_deny_patterns": False, "custom_deny_patterns": []},
+            "skills": {
+                "registries": {
+                    "clawhub": {
+                        "enabled": True,
+                        "base_url": "https://clawhub.ai",
+                        "search_path": "/api/v1/search",
+                        "skills_path": "/api/v1/skills",
+                        "download_path": "/api/v1/download"
+                    }
+                }
             }
         },
         "heartbeat": {"enabled": True, "interval": 30},
@@ -154,7 +180,7 @@ def merge_secrets(new_data, existing_data):
     if isinstance(new_data, dict) and isinstance(existing_data, dict):
         result = {}
         for k, v in new_data.items():
-            if k in SECRET_FIELDS and isinstance(v, str) and (v.endswith("***") or v == ""):
+            if k in SECRET_FIELDS and isinstance(v, str) and (v.endswith("**") or v == ""):
                 result[k] = existing_data.get(k, "")
             else:
                 result[k] = merge_secrets(v, existing_data.get(k, {}))
