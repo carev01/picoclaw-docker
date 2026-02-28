@@ -29,7 +29,7 @@ import urllib.request
 # ---------------------------------------------------------------------------
 
 API_URL = "https://openrouter.ai/api/v1/chat/completions"
-MODEL = "qwen/qwen3-coder-plus"
+MODEL = "qwen/qwen3-coder-next"
 MAX_TOKENS = 16384
 TEMPERATURE = 0.1
 
