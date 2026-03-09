@@ -226,7 +226,6 @@ def call_llm(api_key: str, system: str, user: str) -> str:
     }
     payload = json.dumps({
         "model": MODEL,
-        "max_tokens": MAX_TOKENS,
         "messages": [
             {"role": "system", "content": system},
             {"role": "user", "content": user},
