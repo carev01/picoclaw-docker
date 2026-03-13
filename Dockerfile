@@ -7,7 +7,7 @@ RUN apk add --no-cache git make
 
 WORKDIR /src
 
-ARG PICOCLAW_VERSION=v0.2.2-nightly.20260312.6612ca09
+ARG PICOCLAW_VERSION=v0.2.2
 
 RUN git clone --depth 1 --branch ${PICOCLAW_VERSION} https://github.com/sipeed/picoclaw.git .
 RUN go mod download
